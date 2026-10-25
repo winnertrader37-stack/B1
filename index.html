@@ -725,35 +725,22 @@ for(let m=0;m<2;m++){const p=KP[m],mp=p.reduce((a,b)=>a+b,0)/12;for(let r=0;r<12
    Keys + Ribbon  → Keys track      Guitar → Guitar track
    Drum pad + DJ  → Drums track     Effects → dynamic automation (playback AND export) */
 let DYN=null;const DT=.05;
-/* ---- sound presets: [wave, harmonic ratio, detune cents, gain] ---- */
-const PRESETS={
-piano:{n:'Acoustic Grand Piano',d:'Traditional, vibrant piano',oscs:[['triangle',1,0,1],['sine',2,0,.3],['sine',3,0,.12]],cutM:1.2,sw:[2.2,.8,.6],at:.004,rl:.25,dec:1.8,dl:.22},
-bright:{n:'Bright Piano',d:'Clearer, higher-pitched piano',oscs:[['triangle',1,0,.8],['sawtooth',1,0,.25],['sine',2,0,.35],['sine',4,0,.15]],cutM:1.8,sw:[2.2,.9,.5],at:.003,rl:.2,dec:1.5,dl:.2},
-epiano:{n:'Electric Piano',d:'Smooth electronic piano',oscs:[['sine',1,-3,1],['sine',1,3,.6],['sine',2,0,.3],['sine',7,0,.06]],cutM:1.3,at:.005,rl:.3,dec:1.6,dl:.2,trem:[.12,4.5]},
-harpsi:{n:'Harpsichord',d:'Clear classical sound',oscs:[['sawtooth',1,0,.6],['square',2,0,.25],['sawtooth',1,6,.3]],cutM:2.2,sw:[2.5,1,.3],at:.002,rl:.05,dec:.55,dl:.05},
-organ:{n:'Pipe Organ',d:'Grand, powerful church organ',oscs:[['sine',1,0,1],['sine',2,0,.6],['sine',4,0,.3],['sine',.5,0,.5],['sine',3,0,.2]],cutM:3,at:.03,rl:.12,vol:.8},
-jazz:{n:'Jazz Organ',d:'Smooth, warm organ',oscs:[['sine',1,0,1],['sine',2,0,.8],['sine',3,0,.5],['sine',4,0,.25],['sine',.5,0,.4]],cutM:3,at:.01,rl:.08,vib:[7,6],vol:.8},
-strings:{n:'Strings',d:'Soft, like many violins',oscs:[['sawtooth',1,-12,.5],['sawtooth',1,0,.5],['sawtooth',1,12,.5]],cutM:.6,sw:[.5,1,.25],at:.22,rl:.45,vib:[6,5.2]},
-brass:{n:'Brass',d:'Trumpet-like brass',oscs:[['sawtooth',1,-5,.7],['sawtooth',1,5,.7],['square',1,0,.2]],cutM:1.2,sw:[.35,1.3,.12],at:.05,rl:.12,vib:[4,5.5]},
-lead:{n:'Synth Lead',d:'Unique lead, electronic music',oscs:[['sawtooth',1,-8,.6],['square',1,8,.4]],cutM:1.4,at:.008,rl:.12,vib:[9,5.5]},
-pad:{n:'Synth Pad',d:'Soft atmospheric background',oscs:[['sawtooth',1,-14,.4],['sawtooth',1,0,.4],['sawtooth',1,14,.4],['triangle',.5,0,.4]],cutM:.45,sw:[.4,1,.9],at:.5,rl:.9},
-accordion:{n:'Accordion',d:'Traditional accordion',oscs:[['sawtooth',1,-10,.5],['square',1,10,.4],['sawtooth',2,0,.25]],cutM:1,at:.04,rl:.08,trem:[.1,5.5]},
-guitar:{n:'Guitar',d:'Acoustic / electric guitar',oscs:[['sawtooth',1,-3,.6],['sawtooth',1,3,.6],['triangle',2,0,.15]],cutM:1,sw:[2.2,.45,.5],at:.003,rl:.1,dec:1.4,dl:.15,lo:52,hi:79},
-bass:{n:'Bass',d:'Deep, steady low frequency',oscs:[['sine',1,0,1],['square',1,0,.3]],cutM:.25,at:.01,rl:.1,lo:33,hi:52,sub:0,vol:1.4},
-vibes:{n:'Vibes',d:'Metallic, xylophone-like',oscs:[['sine',1,0,1],['sine',4,0,.3],['sine',10,0,.06]],cutM:2,at:.003,rl:.3,dec:1.8,dl:.12,trem:[.35,5]},
-choir:{n:'Choir',d:'Soft vocal ensemble',oscs:[['sawtooth',1,-8,.5],['sawtooth',1,8,.5]],form:[[800,5,1],[1200,6,.7],[2800,8,.25]],at:.3,rl:.6,vib:[7,5.5],vol:2.5}};
-const CH={k:'piano',g:'guitar'},PZK=Object.keys(PRESETS);
-function ask(title,def){return new Promise(res=>{const d=document.createElement('div');d.style.cssText='position:fixed;inset:0;background:#000d;z-index:40;overflow:auto;padding:14px 12px calc(14px + env(safe-area-inset-bottom))';
-d.innerHTML=`<div style="font-weight:800;font-size:16px;margin:4px 0 10px">${title}</div>`;
-PZK.forEach(k=>{const b=document.createElement('button');b.style.cssText='display:block;width:100%;text-align:left;margin:5px 0;padding:10px 12px;'+(k==def?'outline:2px solid #00d1e0;':'');b.innerHTML=`<b>${PRESETS[k].n}</b><br><small style="color:#8b8b90">${PRESETS[k].d}</small>`;b.onclick=()=>{d.remove();res(k)};d.appendChild(b)});
-const c=document.createElement('button');c.textContent='Cancel';c.style.cssText='display:block;width:100%;margin:10px 0;padding:10px;background:#fe2c55';c.onclick=()=>{d.remove();res(null)};d.appendChild(c);document.body.appendChild(d)})}
+/* ---- sound picker: the keyboard's own sounds (Upper 1, Upper 2, Guitar) ---- */
+function askSound(){return new Promise(res=>{const uk=$('#mf-k').checked,ug=$('#mf-g').checked;let k1=KS.s1,k2=KS.s2,g=+$('#gsn').value;if(g<0)g=11;
+const w=document.createElement('div');w.id='snd-md';
+w.innerHTML=`<div class="sm"><div class="sh"><b>🎹 Choose the sound</b><button class="ic" id="sm-x">✕</button></div><small style="color:#8b8b90">Same sounds as the keyboard. Tap to hear it, then press Start.</small>${uk?'<div class="st">Keyboard · Upper 1</div><div class="sg" id="sg-1"></div><div class="st">Keyboard · Upper 2 (layer)</div><div class="sg" id="sg-2"></div>':''}${ug?'<div class="st">Guitar</div><div class="sg" id="sg-g"></div>':''}<button class="ok" id="sm-ok">✔ Start AI</button></div>`;
+document.body.appendChild(w);
+const prev=i=>{if(i<0)return;init();const t=ac.currentTime;[60,64,67].forEach((n,j)=>{const h=tone(ac,R.ib,t+j*.12,n,.8,SOUNDS[i],{});h.end(t+j*.12+.6)})};
+const fill=(id,cur,set,off)=>{const e=w.querySelector(id);if(!e)return;(off?[{n:'— Off —',d:'No layer'}]:[]).concat(SOUNDS).forEach((o,j)=>{const i=off?j-1:j,b=document.createElement('button');b.className='sb'+(i==cur?' on':'');b.innerHTML=`<b>${o.n}</b><small>${o.d}</small>`;b.onclick=()=>{e.querySelectorAll('.sb').forEach(x=>x.classList.remove('on'));b.classList.add('on');set(i);prev(i)};e.appendChild(b)})};
+fill('#sg-1',k1,i=>k1=i);fill('#sg-2',k2,i=>k2=i,1);fill('#sg-g',g,i=>g=i);
+const done=v=>{w.remove();res(v)};
+w.querySelector('#sm-ok').onclick=()=>done({k:k1,k2,g});w.querySelector('#sm-x').onclick=()=>done(null)})}
 const mkNoise=oc=>{const sr=oc.sampleRate,b=oc.createBuffer(1,sr,sr),d=b.getChannelData(0);for(let i=0;i<sr;i++)d[i]=Math.random()*2-1;return b};
 async function follow(){
 init();const v=vox();if(!v||v.dur<2){lg('Record/import vocal (Vocal track) ≥ 2 s first');return}
 const use={k:$('#mf-k').checked,g:$('#mf-g').checked,d:$('#mf-d').checked,r:$('#mf-r').checked,j:$('#mf-j').checked,f:$('#mf-f').checked};
 if(!Object.values(use).some(Boolean)){lg('Pick at least one instrument');return}
-if(use.k){const k=await ask('🎹 Keyboard sound — which one?',CH.k);if(!k){lg('Cancelled');return}CH.k=k}
-if(use.g){const k=await ask('🎸 Guitar sound — which one?',CH.g);if(!k){lg('Cancelled');return}CH.g=k}
+let SEL=null;if(use.k||use.g){SEL=await askSound();if(!SEL){lg('Cancelled');return}if(use.k){setS1(SEL.k);KS.s2=SEL.k2;lcd()}if(use.g)$('#gsn').value=SEL.g}
 lg('Tracking pitch…');const P=await pitch(v.x),nf=P.nf;
 if(nf<30){lg('Audio too short');return}
 const dv=[];for(let f=0;f<nf;f++)if(Number.isFinite(P.mf[f]))dv.push(P.mf[f]-Math.round(P.mf[f]));
@@ -782,4 +769,21 @@ if($('#mf-s').checked)notes.forEach(o=>{if(!inS(o.n)){const mv=med(o.m);for(cons
 pg(.7);
 const fol=+$('#mf-b').value,har=$('#mf-h').checked,TN=tun,f0m=med(notes.map(o=>o.n)),cut=cl(440*2**((f0m-69)/12)*7,1400,4200),
 sr=ac.sampleRate,L2=Math.ceil((v.dur+2)*sr),mk=()=>{const oc=new OfflineAudioContext(2,L2,sr),mg=oc.createGain();mg.connect(oc.destination);return{oc,mg}};
-notes.forEach(o=>{o.vel=cl(o.pk/P.p95,.3,1);o.bf=[];for(let k=0;k<o.fr.length;k+=3){const f=o.fr[k];o.bf.push([(f*HOP+W/2)/SR,cl(mm[f]-o.n,-1,1),cl(P.rms[f]/o.pk,.35,1.1)])}
+notes.forEach(o=>{o.vel=cl(o.pk/P.p95,.3,1);o.bf=[];for(let k=0;k<o.fr.length;k+=3){const f=o.fr[k];o.bf.push([(f*HOP+W/2)/SR,cl(mm[f]-o.n,-1,1),cl(P.rms[f]/o.pk,.35,1.1)])}});
+// ---- keyboard / guitar voice (pitch + loudness follow) ----
+const SUBS={p:[{t:'sine',g:1}],at:.01,cut:600,rl:.15,v:.08};
+const melTone=(X,o,nn,S,vol)=>{const h=tone(X.oc,X.mg,o.s,nn,.5+.5*o.vel,S,{tn:TN,vol,cut:Math.round(S.cut*cl(cut/2600,.7,1.4))});
+h.os.forEach(x=>x.detune.setValueAtTime(x.__d,o.s));h.fg.gain.setValueAtTime(1,o.s);let last=o.s+Math.max(.01,S.at);
+o.bf.forEach(([tf,dev,ga])=>{if(tf<=last+.004||tf>=o.e-.01)return;last=tf;if(fol>0)h.os.forEach(x=>x.detune.linearRampToValueAtTime(x.__d+dev*100*fol,tf));if(!S.dec)h.fg.gain.linearRampToValueAtTime(ga,tf)});
+h.end(o.e)};
+// list = [[sound, octave shift, volume 0..1], …] — Upper 1 / Upper 2 exactly as set on the keyboard
+const synth=(X,list,lo,hi)=>notes.forEach(o=>{let nn=o.n;while(nn<lo)nn+=12;while(nn>hi)nn-=12;
+list.forEach(([S,oc2,vl])=>{melTone(X,o,nn+oc2*12,S,vl);if(har)melTone(X,o,nn+oc2*12+(inS(nn+4)?4:inS(nn+3)?3:4),S,vl*.5)});
+if(!list[0][0].nosub)melTone(X,o,nn>=48?nn-12:nn,SUBS,1)});
+// ---- ribbon: continuous glide on the exact pitch curve, ↕ filter follows loudness ----
+const ribbon=X=>{const oc=X.oc,os=oc.createOscillator(),f=oc.createBiquadFilter(),g=oc.createGain(),snp=$('#mf-s').checked,fq=m=>440*2**((m-69+12)/12),
+gE=fr=>.16*cl(P.rms[fr]/P.p95,.2,1.1),fE=fr=>cl(700+5500*cl(P.rms[fr]/P.p95,0,1),300,9000);
+os.type='sawtooth';f.type='lowpass';f.Q.value=2;g.gain.value=0;os.frequency.value=220;os.connect(f);f.connect(g);g.connect(X.mg);os.start(0);os.stop(v.dur+1.8);
+notes.forEach(n=>{const m0=mm[n.fr[0]]+tun/100;os.frequency.setTargetAtTime(fq(snp?Math.round(m0):m0),Math.max(0,n.s-.004),.004);g.gain.setTargetAtTime(gE(n.fr[0]),n.s,.006);f.frequency.setTargetAtTime(fE(n.fr[0]),n.s,.01);
+for(let k=0;k<n.fr.length;k+=2){const fr=n.fr[k],tf=(fr*HOP+W/2)/SR;if(tf<=n.s+.004||tf>=n.e-.01)continue;const m=mm[fr]+tun/100;os.frequency.setTargetAtTime(fq(snp?Math.round(m):m),tf,.01);g.gain.setTargetAtTime(gE(fr),tf,.012);f.frequency.setTargetAtTime(fE(fr),tf,.02)}
+g.gain.setTargetAtTime(0,n
